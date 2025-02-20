@@ -4,30 +4,44 @@ import jwt from "jsonwebtoken";
 import { middleware } from "./middleware";
 import { JWT_SECRET } from "@repo/backend-utils/config";
 import { CreateRoomSchema, CreateUserSchema, SignInSchema } from "@repo/common-utils/types";
+import { prisma } from "@repo/db/client";
 
 const app = express();
 const PORT = 3001;
 app.use(express.json());
 
-app.post("/signup", (req, res) => {
+app.post("/signup", async (req, res) => {
     const parsedData = CreateUserSchema.safeParse(req.body);
     if(!parsedData.success) {
+        console.log(parsedData.error);
         res.json({
             message: "Incorrect inputs"
         })
         return;
     }
 
-    const { username, password } = parsedData.data;
+    const { username, password, name } = parsedData.data;
 
-    // db call
-
-    res.json({
-        userId: 123
-    })
+    try {   
+        // db call
+        const User = await prisma.user.create({
+            data: {
+                username,
+                password,
+                name
+            }
+        })
+        res.json({
+            userId: User.id
+        })
+    } catch(e) {
+        res.status(411).json({
+            message: "User already exists with same username"
+        })
+    }
 })
 
-app.post("/signin", (req, res) => {
+app.post("/signin", async (req, res) => {
     const parsedData = SignInSchema.safeParse(req.body);
     if(!parsedData.success) {
         res.json({
@@ -37,7 +51,22 @@ app.post("/signin", (req, res) => {
     }
     const { username, password } = parsedData.data;
 
-    const userId = 1;
+    // db call
+    const User = await prisma.user.findFirst({
+        where: {
+            username,
+            password
+        }
+    })
+
+    if(!User) {
+        res.status(403).json({
+            message: "User not found"
+        })
+        return;
+    }
+
+    const userId = User.id;
     const token = jwt.sign({
         userId
     }, JWT_SECRET);
@@ -47,24 +76,51 @@ app.post("/signin", (req, res) => {
     })
 })
 
-app.post("/create-room", middleware, (req, res) => {
+app.post("/create-room", middleware, async (req, res) => {
     const parsedData = CreateRoomSchema.safeParse(req.body);
     if(!parsedData.success) {
+        console.log(parsedData.error);
         res.json({
             message: "Incorrect inputs"
         })
         return;
     }
-    // const userId = req.userId;
+    //@ts-ignore
+    const userId = req.userId;
 
-    // Create a new room for Admin = userId
-    const room = 1;
-    
-    res.json({
-        room
-    })
+    try {
+        const Room = await prisma.room.create({
+            data: {
+                slug: generateSlug(),      // 'mkg-ijzh-pou'
+                adminId: userId
+            }
+        })
+        
+        res.json({
+            Room
+        })         
+    } catch(e) {
+        res.status(411).json({
+            message: "Duplicate slug"
+        })
+    }
 })
 
 app.listen(PORT, () => {
     console.log(`Server is listening at port ${PORT}`);
 })
+
+
+const generateSlug = (): string => {
+    let options = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
+
+    let slug = "";
+    for (let i = 0; i < 10; i++) {
+        // use a simple function here
+        slug += options[Math.floor(Math.random() * options.length)];
+    }
+
+    slug = slug.slice(0, 3) + '-' + slug.slice(3, 7) + '-' + slug.slice(7, 10);
+    console.log(slug);
+    return slug;
+}
