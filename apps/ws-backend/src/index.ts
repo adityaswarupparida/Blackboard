@@ -46,8 +46,8 @@ wss.on("connection", (socket, request) => {
         rooms : []
     })
     /**
-     * message: { "type": "join", "payload": { "roomId": "71DF327", "userId": "c827y9c82n" } }
-     * message: { "type": "leave", "payload": { "roomId": "71DF327", "userId": "c827y9c82n" } }
+     * message: { "type": "join", "payload": { "roomId": "71DF327" } }
+     * message: { "type": "leave", "payload": { "roomId": "71DF327" } }
      * message: { "type": "chat", "payload": { "roomId": "71DF327", "message": "Hey there" } }
      */
     socket.on("message", async (message) => {
