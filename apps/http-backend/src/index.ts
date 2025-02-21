@@ -122,6 +122,18 @@ app.get("/chats/:roomId", async (req, res) => {
     })
 })
 
+app.get("/room/:slug", async (req, res) => {
+    const slug = req.params.slug;
+    const room = await prisma.room.findMany({
+        where: {
+            slug: slug
+        }
+    })
+    res.json({
+        room
+    })
+})
+
 app.listen(PORT, () => {
     console.log(`Server is listening at port ${PORT}`);
 })
