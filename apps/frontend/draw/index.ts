@@ -9,12 +9,13 @@ export const initDraw = async (canvas: HTMLCanvasElement, roomId: number, socket
     let existing_shapes: Shape[] = await getExistingShapes(roomId);
 
     if(!ctx) {
-        return;
+        return () => {};
     }
     
     socket.onmessage = (event) => {
         const messages = JSON.parse(event.data);
 
+        // Fix the bug => overlapping of same shapes when sent and received on same socket
         if(messages.type == "chat-messages") {
             const shape = JSON.parse(messages.message);
             existing_shapes.push(shape);
@@ -26,43 +27,99 @@ export const initDraw = async (canvas: HTMLCanvasElement, roomId: number, socket
     let start_x = 0;
     let start_y = 0; 
     let mouseclicked = false;
-    ctx.strokeStyle = "rgb(255 255 255)"
+    let selected = localStorage.getItem('Shape');
+    ctx.strokeStyle = "rgb(255 255 255)";
     clearCanvas(existing_shapes, canvas, ctx);
-    
-    canvas.addEventListener("mousedown", function (event) {
-        start_x = event.clientX;
-        start_y = event.clientY;
-        mouseclicked = true;
-    }); 
-    canvas.addEventListener("mouseup", function (event) {
-        mouseclicked = false;
-        const shape: Shape = {
-            type  : Shapes.RECTANGLE,
-            x_cood: start_x,
-            y_cood: start_y,
-            width : event.clientX-start_x,
-            height: event.clientY-start_y
-        }
-        existing_shapes.push(shape);
 
-        console.log(shape);
+    var offsetX = canvas.offsetLeft;
+    var offsetY = canvas.offsetTop;
+
+    if(!selected) {
+        return () => {};
+    }
+
+    const mousedownHandler = (event: MouseEvent) => {
+        start_x = event.clientX - offsetX;
+        start_y = event.clientY - offsetY;
+        mouseclicked = true;
+    }
+
+    const mouseupHandler = (event: MouseEvent) => {
+    
+        console.log(Shapes[parseInt(selected)]);
+        // console.log(Shapes[selectedShape]);
+        mouseclicked = false;
+        switch (parseInt(selected)) {
+            case Shapes.RECTANGLE:
+                existing_shapes.push({
+                    type  : Shapes.RECTANGLE,
+                    x_cood: start_x,
+                    y_cood: start_y,
+                    width : event.clientX - start_x,
+                    height: event.clientY - start_y
+                });
+                break;
+        
+            case Shapes.CIRCLE:
+                existing_shapes.push({
+                    type    : Shapes.CIRCLE,
+                    cx_cood : start_x,
+                    cy_cood : start_y,
+                    x_radius: event.clientX - offsetX,
+                    y_radius: event.clientY - offsetY
+                });
+                break;
+
+            default:
+                break;
+        }
+        console.log(existing_shapes);
+        // existing_shapes.push(shape);
+
+        console.log(existing_shapes.at(-1));
         // { "type": "chat", "payload": { "roomId": "71DF327", "message": "Hey there" } }
-        socket.send(JSON.stringify({
-            type: "chat",
-            payload: {
-                roomId: Number(roomId),
-                message: JSON.stringify(shape)
-            }
-        }));
-    }); 
-    canvas.addEventListener("mousemove", function (event) {
+        if(parseInt(selected) !== Shapes.PENCIL && existing_shapes.at(-1)?.type === parseInt(selected)) {
+            socket.send(JSON.stringify({
+                type: "chat",
+                payload: {
+                    roomId: Number(roomId),
+                    message: JSON.stringify(existing_shapes.at(-1))
+                }
+            }));
+                    
+        }
+    }
+
+    const mousemoveHandler = (event: MouseEvent) => {
         if(mouseclicked) {
             // ctx.clearRect(0, 0, canvas.width, canvas.height);
-            clearCanvas(existing_shapes, canvas, ctx);
-            ctx.strokeRect(start_x, start_y, event.clientX-start_x, event.clientY-start_y);
-        }
+            clearCanvas(existing_shapes, canvas, ctx);          
+            switch (parseInt(selected)) {
+                case Shapes.RECTANGLE:
+                    ctx.strokeRect(start_x, start_y, event.clientX-start_x, event.clientY-start_y);
+                    break;
+            
+                case Shapes.CIRCLE:
+                    drawOval(ctx, start_x, start_y, event.clientX-offsetX, event.clientY-offsetY);
+                    break;
 
-    });
+                default:
+                    break;
+            }
+        }
+    }
+
+    canvas.addEventListener("mousedown", mousedownHandler); 
+    canvas.addEventListener("mouseup", mouseupHandler); 
+    canvas.addEventListener("mousemove", mousemoveHandler);
+
+    return () => { 
+        // console.log('Removed '+selected);
+        // console.log('Removed '+Shapes[selectedShape]);
+        canvas.removeEventListener("mousedown", mousedownHandler);
+        canvas.removeEventListener("mouseup", mouseupHandler);
+        canvas.removeEventListener("mousemove", mousemoveHandler); 
+    };
 }
 
 const clearCanvas = (existing_shapes: Shape[], canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
@@ -75,7 +132,7 @@ const clearCanvas = (existing_shapes: Shape[], canvas: HTMLCanvasElement, ctx: C
                 break;
         
             case Shapes.CIRCLE:
-                
+                drawOval(ctx, shape.cx_cood, shape.cy_cood, shape.x_radius, shape.y_radius);
                 break;
 
             default:
@@ -94,4 +151,13 @@ const getExistingShapes = async (roomId: number) => {
     })
 
     return shapes;
+}
+
+const drawOval = (ctx: CanvasRenderingContext2D, startX: number, startY: number, x: number, y: number) => {
+    ctx.beginPath();
+    ctx.moveTo(startX, startY + (y - startY) / 2);
+    ctx.bezierCurveTo(startX, startY, x, startY, x, startY + (y - startY) / 2);
+    ctx.bezierCurveTo(x, y, startX, y, startX, startY + (y - startY) / 2);
+    ctx.closePath();
+    ctx.stroke();
 }

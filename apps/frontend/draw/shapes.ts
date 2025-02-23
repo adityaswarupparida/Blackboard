@@ -1,7 +1,8 @@
 export enum Shapes {
     RECTANGLE,
     CIRCLE,
-    LINE
+    LINE,
+    PENCIL
 }
 
 export interface Rectangle {
@@ -16,5 +17,6 @@ export interface Circle {
     type: Shapes.CIRCLE,
     cx_cood: number,
     cy_cood: number,
-    radius: number
+    x_radius: number,
+    y_radius: number
 }
