@@ -2,7 +2,8 @@ export enum Shapes {
     RECTANGLE,
     CIRCLE,
     LINE,
-    PENCIL
+    PENCIL,
+    DRAG
 }
 
 export interface Rectangle {
@@ -19,4 +20,12 @@ export interface Circle {
     cy_cood: number,
     x_radius: number,
     y_radius: number
+}
+
+export interface Line {
+    type: Shapes.LINE,
+    x_start: number,
+    y_start: number,
+    x_end  : number,
+    y_end  : number
 }
