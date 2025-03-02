@@ -1,3 +1,10 @@
+# Auth page
+<img width="1706" alt="Screenshot 2025-03-03 at 3 53 51 AM" src="https://github.com/user-attachments/assets/0d09f830-fe45-4e23-98fa-af1aed192457" />
+
+# Infinite board
+<img width="1709" alt="Screenshot 2025-03-03 at 3 58 38 AM" src="https://github.com/user-attachments/assets/568581b0-4950-4cc3-805a-3b10a3639667" />
+
+
 # Turborepo starter
 
 This Turborepo starter is maintained by the Turborepo core team.
