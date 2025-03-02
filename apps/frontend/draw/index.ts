@@ -5,15 +5,9 @@ import { HTTP_BACKEND } from "@/config";
 type Shape = Rectangle | Circle | Line;
 let existing_shapes: Shape[];
 let scale = 1;
-let translate_coords: {
-    x: number;
-    y: number;
-} = {
-    x: 0,
-    y: 0
-};
 let offsetX = 0;
 let offsetY = 0;
+
 export const initDraw = async (canvas: HTMLCanvasElement, roomId: number, socket: WebSocket) => {
     const ctx = canvas.getContext("2d");
     existing_shapes = await getExistingShapes(roomId);
@@ -52,8 +46,8 @@ export const initDraw = async (canvas: HTMLCanvasElement, roomId: number, socket
         start_y = (event.clientY - offsetY) / scale;
         mouseclicked = true;
 
-        drag_x = event.pageX - translate_coords.x;
-        drag_y = event.pageY - translate_coords.y;
+        drag_x = event.pageX - offsetX;
+        drag_y = event.pageY - offsetY;
     }
 
     const mouseupHandler = (event: MouseEvent) => {
@@ -80,13 +74,22 @@ export const initDraw = async (canvas: HTMLCanvasElement, roomId: number, socket
                     y_radius: (event.clientY - offsetY) / scale
                 });
                 break;
+            
+            case Shapes.LINE:
+                existing_shapes.push({
+                    type    : Shapes.LINE,
+                    x_start : start_x,
+                    y_start : start_y,
+                    x_end   : (event.clientX - offsetX) / scale,
+                    y_end   : (event.clientY - offsetY) / scale
+                });
+                break;
 
             default:
                 break;
         }
         console.log(existing_shapes);
         // existing_shapes.push(shape);
-        // clearCanvas(existing_shapes, canvas, ctx, scale, translate_coords);          
         redraw(canvas, ctx);
 
         console.log(existing_shapes.at(-1));
@@ -105,8 +108,6 @@ export const initDraw = async (canvas: HTMLCanvasElement, roomId: number, socket
 
     const mousemoveHandler = (event: MouseEvent) => {
         if(mouseclicked) {
-            // ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // clearCanvas(existing_shapes, canvas, ctx, scale, translate_coords);   
             redraw(canvas, ctx);       
             switch (parseInt(selected)) {
                 case Shapes.RECTANGLE:
@@ -117,12 +118,16 @@ export const initDraw = async (canvas: HTMLCanvasElement, roomId: number, socket
                     drawOval(ctx, start_x, start_y, (event.clientX-offsetX)/scale, (event.clientY-offsetY)/scale);
                     break;
 
+                case Shapes.LINE:
+                    drawLine(ctx, start_x, start_y, (event.clientX-offsetX)/scale, (event.clientY-offsetY)/scale);
+                    break;
+
                 case Shapes.DRAG:
                     // get mouse position
-                    translate_coords.x = event.pageX - drag_x;
-                    translate_coords.y = event.pageY - drag_y;
-                    offsetX = translate_coords.x;
-                    offsetY = translate_coords.y;
+                    offsetX = event.pageX - drag_x;
+                    offsetY = event.pageY - drag_y;
+                    // offsetX = translate_coords.x;
+                    // offsetY = translate_coords.y;
                     // if(event.pageX > canvas.width)
                     //     canvas.width += translate_coords.x;
                     // if(event.pageY > canvas.height)
@@ -137,16 +142,17 @@ export const initDraw = async (canvas: HTMLCanvasElement, roomId: number, socket
     }
 
     const wheelHandler = (event: WheelEvent) => {
+        // TODO: Correct the zoom factor
         const zoomfactor = event.deltaY > 0 ? 0.9 : 1.1;
         scale *= zoomfactor;
 
         const point_x = (event.clientX - offsetX) / scale;
         const point_y = (event.clientY - offsetY) / scale;
 
-        translate_coords.x = event.clientX - point_x * scale;
-        translate_coords.y = event.clientY - point_y * scale;
-        offsetX = translate_coords.x;
-        offsetY = translate_coords.y;
+        offsetX = event.clientX - point_x * scale;
+        offsetY = event.clientY - point_y * scale;
+        // offsetX = translate_coords.x;
+        // offsetY = translate_coords.y;
 
         redraw(canvas, ctx);
     }
@@ -174,7 +180,7 @@ export const initDraw = async (canvas: HTMLCanvasElement, roomId: number, socket
     };
 }
 
-const clearCanvas = (existing_shapes: Shape[], canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, scale: number, translate_coords: { x: number, y: number }) => {
+const clearCanvas = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
 
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -194,6 +200,9 @@ const drawShapes = (existing_shapes: Shape[], ctx: CanvasRenderingContext2D) => 
                 drawOval(ctx, shape.cx_cood, shape.cy_cood, shape.x_radius, shape.y_radius);
                 break;
 
+            case Shapes.LINE:
+                drawLine(ctx, shape.x_start, shape.y_start, shape.x_end, shape.y_end);
+
             default:
                 break;
         }
@@ -201,10 +210,11 @@ const drawShapes = (existing_shapes: Shape[], ctx: CanvasRenderingContext2D) => 
 }
 
 const redraw = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
-    clearCanvas(existing_shapes, canvas, ctx, scale, translate_coords);
-
-    ctx.setTransform(scale, 0, 0, scale, translate_coords.x, translate_coords.y);
-
+    // clear the canvas
+    clearCanvas(canvas, ctx);
+    // set the current canvas view
+    ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
+    // draw shapes
     drawShapes(existing_shapes, ctx);
 } 
 
@@ -226,5 +236,12 @@ const drawOval = (ctx: CanvasRenderingContext2D, startX: number, startY: number,
     ctx.bezierCurveTo(startX, startY, x, startY, x, startY + (y - startY) / 2);
     ctx.bezierCurveTo(x, y, startX, y, startX, startY + (y - startY) / 2);
     ctx.closePath();
+    ctx.stroke();
+}
+
+const drawLine = (ctx: CanvasRenderingContext2D, startX: number, startY: number, endX: number, endY: number) => {
+    ctx.beginPath(); // Start a new path
+    ctx.moveTo(startX, startY); // Move to (startX, startY)
+    ctx.lineTo(endX, endY); // Draw a line to (endX, endY)
     ctx.stroke();
 }
