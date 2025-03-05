@@ -10,7 +10,7 @@ const Canvas = ({ roomId, socket }: {
     socket: WebSocket; 
 }) => {
     const canvasref = useRef<HTMLCanvasElement>(null);
-    const [selectedShape, setSelectedShape] = useState<Shapes>(Shapes.PENCIL);
+    const [selectedShape, setSelectedShape] = useState<Shapes>(Shapes.POINTER);
     const isMountedRef = useRef<boolean>(true);  // For Prod, make it default to false
     const [asyncDone, setAsyncDone] = useState<boolean>(false);
 

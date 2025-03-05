@@ -2,7 +2,7 @@ import { AuthPage } from "@/components/AuthPage";
 
 const Signin = () => {
     return (<div>
-        <AuthPage isSignIn={true} />
+        <AuthPage isLogIn={true} />
     </div>)
 }
 

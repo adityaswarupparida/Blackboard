@@ -1,5 +1,5 @@
 import { Shapes } from "@/draw/shapes"
-import { Circle, Hand, Minus, Pencil, Square } from "lucide-react";
+import { Circle, Eraser, Hand, Minus, MousePointer, Pencil, Square } from "lucide-react";
 import { IconButton } from "./IconButton";
 
 export const TopBar = ({ selectedShape, setSelectedShape }: {
@@ -11,6 +11,10 @@ export const TopBar = ({ selectedShape, setSelectedShape }: {
             <IconButton onclick={() => setSelectedShape(Shapes.DRAG)} 
                 selected={selectedShape === Shapes.DRAG}>
                 <Hand size={32}/>
+            </IconButton>
+            <IconButton onclick={() => setSelectedShape(Shapes.POINTER)}
+                selected={selectedShape === Shapes.POINTER}>
+                <MousePointer size={32} />
             </IconButton>
             <IconButton onclick={() => setSelectedShape(Shapes.RECTANGLE)} 
                 selected={selectedShape === Shapes.RECTANGLE}>
@@ -27,6 +31,10 @@ export const TopBar = ({ selectedShape, setSelectedShape }: {
             <IconButton onclick={() => setSelectedShape(Shapes.PENCIL)}
                 selected={selectedShape === Shapes.PENCIL}>
                 <Pencil size={32} />
+            </IconButton>
+            <IconButton onclick={() => setSelectedShape(Shapes.ERASER)}
+                selected={selectedShape === Shapes.ERASER}>
+                <Eraser size={32} />
             </IconButton>
         </div>
     </div>)

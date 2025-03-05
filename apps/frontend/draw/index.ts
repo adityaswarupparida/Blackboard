@@ -94,7 +94,7 @@ export const initDraw = async (canvas: HTMLCanvasElement, roomId: number, socket
 
         console.log(existing_shapes.at(-1));
         // { "type": "chat", "payload": { "roomId": "71DF327", "message": "Hey there" } }
-        if(parseInt(selected) !== Shapes.PENCIL && existing_shapes.at(-1)?.type === parseInt(selected)) {
+        if(parseInt(selected) !== Shapes.POINTER && existing_shapes.at(-1)?.type === parseInt(selected)) {
             socket.send(JSON.stringify({
                 type: "chat",
                 payload: {

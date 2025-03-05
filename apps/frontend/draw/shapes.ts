@@ -3,7 +3,9 @@ export enum Shapes {
     CIRCLE,
     LINE,
     PENCIL,
-    DRAG
+    DRAG,
+    POINTER,
+    ERASER
 }
 
 export interface Rectangle {
