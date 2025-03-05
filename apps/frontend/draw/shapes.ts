@@ -31,3 +31,8 @@ export interface Line {
     x_end  : number,
     y_end  : number
 }
+
+export interface Pencil {
+    type: Shapes.PENCIL,
+    points: {x: number, y: number}[]
+}

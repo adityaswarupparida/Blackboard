@@ -1,8 +1,8 @@
 import axios from "axios";
-import { Circle, Line, Rectangle, Shapes } from "./shapes";
+import { Circle, Line, Pencil, Rectangle, Shapes } from "./shapes";
 import { HTTP_BACKEND } from "@/config";
 
-type Shape = Rectangle | Circle | Line;
+type Shape = Rectangle | Circle | Line | Pencil;
 let existing_shapes: Shape[];
 let scale = 1;
 let offsetX = 0;
@@ -35,6 +35,12 @@ export const initDraw = async (canvas: HTMLCanvasElement, roomId: number, socket
     let mouseclicked = false;
     let selected = localStorage.getItem('Shape');
     ctx.strokeStyle = "rgb(255 255 255)";
+    ctx.lineWidth = 3;
+
+    let points: {
+        x: number;
+        y: number
+    }[] = [];
     redraw(canvas, ctx);
 
     if(!selected) {
@@ -46,6 +52,9 @@ export const initDraw = async (canvas: HTMLCanvasElement, roomId: number, socket
         start_y = (event.clientY - offsetY) / scale;
         mouseclicked = true;
 
+        if(selected === 'PENCIL') {
+            points.push({x: start_x, y: start_y});
+        }
         drag_x = event.pageX - offsetX;
         drag_y = event.pageY - offsetY;
     }
@@ -85,14 +94,26 @@ export const initDraw = async (canvas: HTMLCanvasElement, roomId: number, socket
                 });
                 break;
 
+            case Shapes.PENCIL:
+                points.push({x: (event.clientX - offsetX) / scale, y: (event.clientY - offsetY) / scale});
+                existing_shapes.push({
+                    type    : Shapes.PENCIL,
+                    points  : points
+                });
+                points = [];
+                break;
+
             default:
                 break;
         }
-        console.log(existing_shapes);
+
+        existing_shapes.forEach((shape) => {
+            console.log(shape.type);
+        })
         // existing_shapes.push(shape);
         redraw(canvas, ctx);
 
-        console.log(existing_shapes.at(-1));
+        console.log(existing_shapes.at(-1)?.type);
         // { "type": "chat", "payload": { "roomId": "71DF327", "message": "Hey there" } }
         if(parseInt(selected) !== Shapes.POINTER && existing_shapes.at(-1)?.type === parseInt(selected)) {
             socket.send(JSON.stringify({
@@ -120,6 +141,11 @@ export const initDraw = async (canvas: HTMLCanvasElement, roomId: number, socket
 
                 case Shapes.LINE:
                     drawLine(ctx, start_x, start_y, (event.clientX-offsetX)/scale, (event.clientY-offsetY)/scale);
+                    break;
+                
+                case Shapes.PENCIL:
+                    points.push({x: (event.clientX - offsetX) / scale, y: (event.clientY - offsetY) / scale});
+                    drawPencil(ctx, points);
                     break;
 
                 case Shapes.DRAG:
@@ -202,6 +228,11 @@ const drawShapes = (existing_shapes: Shape[], ctx: CanvasRenderingContext2D) => 
 
             case Shapes.LINE:
                 drawLine(ctx, shape.x_start, shape.y_start, shape.x_end, shape.y_end);
+                break;
+
+            case Shapes.PENCIL:
+                drawPencil(ctx, shape.points);
+                break;
 
             default:
                 break;
@@ -243,5 +274,25 @@ const drawLine = (ctx: CanvasRenderingContext2D, startX: number, startY: number,
     ctx.beginPath(); // Start a new path
     ctx.moveTo(startX, startY); // Move to (startX, startY)
     ctx.lineTo(endX, endY); // Draw a line to (endX, endY)
+    ctx.stroke();
+}
+
+const drawPencil = (ctx: CanvasRenderingContext2D, points: {x: number, y: number}[]) => {
+    ctx.beginPath();   	
+    ctx.lineCap = 'round';   	
+  
+    // // The position of the cursor gets updated as we move the mouse around.
+    // points.push({x: x_coord, y:y_coord});
+    points.forEach((point, index) => {
+        if(index == 0) {
+            // The cursor to start drawing moves to this coordinate
+            ctx.moveTo(point.x, point.y);  
+        } else {
+            // A line is traced from previous coordinate to this coordinate
+            ctx.lineTo(point.x, point.y);  
+        }
+    }) 
+    	
+    // Draws the line.
     ctx.stroke();
 }
